@@ -23,7 +23,7 @@ except:
 
 s.send(name.encode("utf-8"))
 print('Connected to remote host. You can start sending messages')
-sys.stdout.write('[Me] ');
+sys.stdout.write('[Me] ')
 sys.stdout.flush()
 
 while 1:
