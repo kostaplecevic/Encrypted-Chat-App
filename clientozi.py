@@ -42,7 +42,7 @@ while 1:
             else:
                 # print data
                 sys.stdout.write(data.decode("utf-8"))
-                sys.stdout.write('[Me] ');
+                sys.stdout.write('[Me] ')
                 sys.stdout.flush()
 
         else:
