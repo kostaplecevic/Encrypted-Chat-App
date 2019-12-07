@@ -1,54 +1,66 @@
-import select
-import socket
-import sys
+#!/usr/bin/env python3
+"""Script for Tkinter GUI chat client."""
+from socket import AF_INET, socket, SOCK_STREAM
+from threading import Thread
+import tkinter
 
+def receive():
+    """Handles receiving of messages."""
+    while True:
+        try:
+            msg = client_socket.recv(BUFSIZ).decode("utf8")
+            msg_list.insert(tkinter.END, msg)
+        except OSError:  # Possibly client has left the chat.
+            break
 
-if (len(sys.argv) < 4):
-    print('Usage : python chat_client.py hostname port username')
-    sys.exit()
+def send(event=None):  # event is passed by binders.
+    """Handles sending of messages."""
+    msg = my_msg.get()
+    my_msg.set("")  # Clears input field.
+    client_socket.send(bytes(msg, "utf8"))
+    if msg == "{quit}":
+        client_socket.close()
+        top.quit()
 
-host = sys.argv[1]
-port = int(sys.argv[2])
-name = sys.argv[3]
+def on_closing(event=None):
+    """This function is to be called when the window is closed."""
+    my_msg.set("{quit}")
+    send()
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.settimeout(2)
+top = tkinter.Tk()
+top.title("Chatter")
 
-# connect to remote host
-try:
-    s.connect((host, port))
-except:
-    print('Unable to connect')
-    sys.exit()
+messages_frame = tkinter.Frame(top)
+my_msg = tkinter.StringVar()  # For the messages to be sent.
+my_msg.set("Type your messages here.")
+scrollbar = tkinter.Scrollbar(messages_frame)  # To navigate through past messages.
 
-s.send(name.encode("utf-8"))
-print('Connected to remote host. You can start sending messages')
-sys.stdout.write('[Me] ')
-sys.stdout.flush()
+msg_list = tkinter.Listbox(messages_frame, height=15, width=50, yscrollcommand=scrollbar.set)
+scrollbar.pack(side=tkinter.RIGHT, fill=tkinter.Y)
+msg_list.pack(side=tkinter.LEFT, fill=tkinter.BOTH)
+msg_list.pack()
+messages_frame.pack()
 
-while 1:
-    socket_list = [sys.stdin, s]
+entry_field = tkinter.Entry(top, textvariable=my_msg)
+entry_field.bind("<Return>", send)
+entry_field.pack()
+send_button = tkinter.Button(top, text="Send", command=send)
+send_button.pack()
+top.protocol("WM_DELETE_WINDOW", on_closing)
 
-    # Get the list sockets which are readable
-    ready_to_read, ready_to_write, in_error = select.select(socket_list, [], [])
+HOST = input('Enter host: ')
+PORT = input('Enter port: ')
+if not PORT:
+    PORT = 33000  # Default value.
+else:
+    PORT = int(PORT)
 
-    for sock in ready_to_read:
-        if sock == s:
-            # incoming message from remote server, s
-            data = sock.recv(4096)
-            if not data:
-                print('\nDisconnected from chat server')
-                sys.exit()
-            else:
-                # print data
-                sys.stdout.write(data.decode("utf-8"))
-                sys.stdout.write('[Me] ')
-                sys.stdout.flush()
+BUFSIZ = 1024
+ADDR = (HOST, PORT)
+client_socket = socket(AF_INET, SOCK_STREAM)
+client_socket.connect(ADDR)
 
-        else:
-            # user entered a message
-            msg = sys.stdin.readline()
-            s.send(msg.encode("utf-8"))
-            s.send(name.encode("utf-8"))
-            sys.stdout.write('[Me] ')
-            sys.stdout.flush()
+receive_thread = Thread(target=receive)
+receive_thread.start()
+tkinter.mainloop()  # Starts GUI execution.
+
