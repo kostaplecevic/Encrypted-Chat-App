@@ -1,11 +1,10 @@
-
 #!/usr/bin/env python3
 """Server for multithreaded (asynchronous) chat application."""
 
 from socket import AF_INET, socket, SOCK_STREAM
 from threading import Thread
 from Crypto.Cipher import AES
-import random
+
 
 clients = {}
 addresses = {}
@@ -23,11 +22,8 @@ def getKey(key):
 
 key = getKey("123")
 
-def encodeData(data):
-    return data.encode()
 
 def accept_incoming_connections():
-    """Sets up handling for incoming clients."""
     while True:
         client, client_address = SERVER.accept()
         print("%s:%s has connected." % client_address)
@@ -44,8 +40,7 @@ def accept_incoming_connections():
         addresses[client] = client_address
         Thread(target=handle_client, args=(client,)).start()
 
-def handle_client(client):  # Takes client socket as argument.
-    """Handles a single client connection."""
+def handle_client(client):
     name = client.recv(BUFSIZ).decode()
     print(name)
     welcome = ('Welcome %s! If you ever want to quit, type {quit} to exit.' % name).encode()
@@ -69,7 +64,8 @@ def handle_client(client):  # Takes client socket as argument.
     while True:
         msg = client.recv(BUFSIZ).decode()
         print(msg)
-        if msg != bytes("{quit}", "utf8"):
+        if msg != ("{quit}"):
+            msg = name + ": " +msg
             msg = msg.encode()
             bmsg = bytes(msg)
             cipher = AES.new(key, AES.MODE_EAX)
@@ -83,21 +79,25 @@ def handle_client(client):  # Takes client socket as argument.
             client.send(bytes("{quit}", "utf8"))
             client.close()
             del clients[client]
-            broadcast(bytes("%s has left the chat." % name, "utf8"))
+            leavemsg = ("%s has left the chat." % name).encode()
+            bleavemsg = bytes(leavemsg)
+            cipher = AES.new(key, AES.MODE_EAX)
+            nonce = cipher.nonce
+            ciphertext = cipher.encrypt(bleavemsg)
+            broadcast(nonce, ciphertext)
             break
 
-def broadcast(nonce, msg):  # prefix is for name identification.
-    """Broadcasts a message to all the clients."""
+def broadcast(nonce, msg):
     for sock in clients:
         sock.send(nonce)
         sock.send(msg)
 
 
 if __name__ == "__main__":
-    SERVER.listen(5)  # Listens for 5 connections at max.
+    SERVER.listen(5)
     print("Waiting for connection...")
     ACCEPT_THREAD = Thread(target=accept_incoming_connections)
-    ACCEPT_THREAD.start()  # Starts the infinite loop.
+    ACCEPT_THREAD.start()  # Zapocinje loop.
     ACCEPT_THREAD.join()
     SERVER.close()
 
