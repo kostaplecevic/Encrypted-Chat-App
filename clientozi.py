@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Script for Tkinter GUI chat client."""
 from socket import AF_INET, socket, SOCK_STREAM
 from threading import Thread
-import tkinter
+import tkinter as tk
+
 import time
 import os
 from Crypto.Cipher import AES
@@ -26,7 +26,7 @@ def receive():
             print(decoded)
             msg = decoded.decode()
             print(msg)
-            msg_list.insert(tkinter.END, msg)
+            msg_list.insert(tk.getint(0), msg)
         except OSError:  # Ako klijent nasilno izadje
             break
 
@@ -42,31 +42,53 @@ def send(event=None):
         #top.destroy()
         os._exit(0)
 
-#def on_closing(event=None):
-    #my_msg.set("{quit}")
-    #send()
+#GUI
 
-top = tkinter.Tk()
-top.title("Leo Chat")
+top = tk.Tk()
+sizex = 600
+sizey = 300
+posx  = 100
+posy  = 100
+top.wm_geometry("%dx%d+%d+%d" % (sizex, sizey, posx, posy))
+top.title("Chatter")
 
-messages_frame = tkinter.Frame(top)
-my_msg = tkinter.StringVar()
-my_msg.set(" ")
-scrollbar = tkinter.Scrollbar(messages_frame)
-
-msg_list = tkinter.Listbox(messages_frame, height=15, width=50, yscrollcommand=scrollbar.set)
-scrollbar.pack(side=tkinter.RIGHT, fill=tkinter.Y)
-msg_list.pack(side=tkinter.LEFT, fill=tkinter.BOTH)
-msg_list.pack()
+messages_frame=tk.Frame(top,width=50,height=100,bd=1)
+messages_frame.place(x=10,y=10)
 messages_frame.pack()
 
-entry_field = tkinter.Entry(top, textvariable=my_msg)
+msg_list = tk.Listbox(messages_frame, width=50, height=20, font=("Helvetica", 11))
+msg_list.pack(side="left", fill="x")
+msg_list.pack()
+
+scrollbar = tk.Scrollbar(messages_frame, orient="vertical")
+scrollbar.config(command=msg_list.yview)
+scrollbar.pack(side="left", fill="y")
+msg_list.config(yscrollcommand=scrollbar.set)
+
+scrollbar2 = tk.Scrollbar(messages_frame, orient="horizontal")
+scrollbar2.config(command=msg_list.xview)
+scrollbar2.pack(side="bottom", fill="x")
+msg_list.config(xscrollcommand=scrollbar2.set)
+
+my_msg = tk.StringVar()
+my_msg.set("")
+canvas = tk.Canvas(messages_frame)
+entry_field = tk.Entry(messages_frame, textvariable=my_msg)
 entry_field.bind("<Return>", send)
+canvas.create_window(250, 150, window=entry_field)
+entry_field.focus_set()
 entry_field.pack()
-send_button = tkinter.Button(top, text="Send", command=send)
+
+send_button = tk.Button(top, text="Send", command=send)
 send_button.pack()
 
-#top.protocol("WM_DELETE_WINDOW", on_closing)
+def on_closing(event=None):
+    """Kada se klikne na x"""
+    my_msg.set("{quit}")
+    send()
+top.protocol("WM_DELETE_WINDOW", on_closing)
+
+#Addressing
 
 HOST = input('Enter host: ')
 PORT = input('Enter port: ')
@@ -82,5 +104,5 @@ client_socket.connect(ADDR)
 
 receive_thread = Thread(target=receive)
 receive_thread.start()
-tkinter.mainloop()  #Zapocinje GUI
+tk.mainloop()  #Zapocinje GUI
 

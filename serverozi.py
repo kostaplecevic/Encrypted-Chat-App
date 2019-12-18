@@ -27,8 +27,7 @@ def accept_incoming_connections():
     while True:
         client, client_address = SERVER.accept()
         print("%s:%s has connected." % client_address)
-        msg = ("Greetings from the cave!"+
-                          "Now type your name and press enter!").encode()
+        msg = ("Greetings from the cave!  Now type your name and press enter!").encode()
         bmsg = bytes(msg)
         cipher = AES.new(key, AES.MODE_EAX)
         nonce = cipher.nonce
